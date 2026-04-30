@@ -1,0 +1,413 @@
+<meta charset="UTF-8">
+<style type="text/css">body {
+		font-family: "Segoe UI", Arial, sans-serif;
+		background: #f5f7fa;
+		margin: 0;
+		padding: 24px;
+		color: #2e3a46;
+		line-height: 1.4;
+	}
+
+	.container {
+		max-width: 1400px;
+		margin: auto;
+		background: #ffffff;
+		padding: 10px 20px 30px 20px;
+		border-radius: 6px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+	}
+
+	.section {
+		margin-top: 28px;
+	}
+
+	.section-title {
+		font-size: 18px;
+		font-weight: 600;
+		margin-bottom: 8px;
+		padding-left: 10px;
+		border-left: 4px solid #3597D5;
+		color: #1f2937;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		table-layout: fixed;
+		background: #fff;
+	}
+
+	th,
+	td {
+		border: 1px solid #e1e6eb;
+		padding: 10px;
+		font-size: 14px;
+		vertical-align: top;
+		word-wrap: break-word;
+	}
+
+	th {
+		background: #f0f3f7;
+		font-weight: 600;
+		color: #344054;
+		text-align: left;
+	}
+
+	/* Estilos SYDLE ONE */
+	.topic-row {
+		background: #3597D5;
+		color: #ffffff;
+		font-weight: 600;
+	}
+
+	.subtopic-row {
+		background: #f7f9fc;
+	}
+
+	.total-row {
+		background: #eef2f7;
+		font-weight: 600;
+	}
+
+	/* Status Base */
+	.status {
+		padding: 3px 8px;
+		border-radius: 10px;
+		font-size: 12px;
+		font-weight: 600;
+		display: inline-block;
+		white-space: nowrap;
+		margin-top: 10px;
+	}
+
+	/* Cores de Status */
+	.status.todo {
+		background: #e5e7eb;
+		color: #374151;
+	}
+
+	.status.dev {
+		background: #dbeafe;
+		color: #1e40af;
+	}
+
+	.status.test {
+		background: #fef3c7;
+		color: #92400e;
+	}
+
+	.status.done {
+		background: #dcfce7;
+		color: #166534;
+	}
+
+	.status.blocked {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	/* Cores de Alteração SYDLE */
+	.status.feat {
+		background: #dbeafe;
+		color: #1e40af;
+	}
+
+	.status.fix {
+		background: #ffedd5;
+		color: #c2410c;
+	}
+
+	.status.refactor {
+		background: #f3e8ff;
+		color: #6b21a8;
+	}
+
+	.status.remove {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	/* Cores de Testes */
+	.status.manual {
+		background: #ccfbf1;
+		color: #0f766e;
+	}
+
+	.status.auto {
+		background: #e0e7ff;
+		color: #3730a3;
+	}
+
+	.status.high-prio {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	.status.low-prio {
+		background: #f3f4f6;
+		color: #4b5563;
+	}
+
+	/* Cores de Resultados */
+	.status.pass {
+		background: #dcfce7;
+		color: #166534;
+	}
+
+	.status.fail {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	.status.warn {
+		background: #fef3c7;
+		color: #92400e;
+	}
+
+	.status.skip {
+		background: #e5e7eb;
+		color: #374151;
+	}
+
+	.tag-box {
+		margin-top: 12px;
+		padding: 12px;
+		background: #f7f9fc;
+		border: 1px dashed #d0d7de;
+		border-radius: 6px;
+		font-size: 13px;
+	}
+
+	.tag-box .status {
+		margin-right: 6px;
+		margin-bottom: 6px;
+	}
+
+	.placeholder {
+		color: #9aa4b2;
+		font-style: italic;
+	}
+</style>
+<div class="container">
+<div class="section">
+<div class="section-title">Vis&atilde;o Geral</div>
+
+<table>
+	<tbody>
+		<tr>
+			<td>
+			<p>Descrever objetivo da hist&oacute;ria, valor para o usu&aacute;rio e crit&eacute;rios de aceita&ccedil;&atilde;o.</p>
+			</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+
+<div class="section"><!-- Planejamento Estratégico -->
+<div class="section-title">Planejamento estrat&eacute;gico</div>
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:40%">T&oacute;pico</th>
+			<th style="width:25%">Observa&ccedil;&otilde;es</th>
+			<th style="width:20%">Status</th>
+			<th style="width:15%">Estimativa</th>
+			<th style="width:15%">Real</th>
+		</tr>
+		<tr class="topic-row">
+			<td>1. T&oacute;pico</td>
+			<td>observa&ccedil;&otilde;es</td>
+			<td><span class="status todo">N&atilde;o iniciada</span></td>
+			<td>3h</td>
+			<td>0h</td>
+		</tr>
+		<tr class="subtopic-row">
+			<td>1.1. Subt&oacute;pico</td>
+			<td>observa&ccedil;&otilde;es 1.1</td>
+			<td><span class="status todo">N&atilde;o iniciada</span></td>
+			<td>3h</td>
+			<td>0h</td>
+		</tr>
+		<tr class="topic-row">
+			<td>2. T&oacute;pico</td>
+			<td>observa&ccedil;&otilde;es 2</td>
+			<td><span class="status todo">N&atilde;o iniciada</span></td>
+			<td>4h</td>
+			<td>0h</td>
+		</tr>
+		<tr class="subtopic-row">
+			<td>2.1. Subt&oacute;pico</td>
+			<td>observa&ccedil;&otilde;es 2.1</td>
+			<td><span class="status todo">N&atilde;o iniciada</span></td>
+			<td>4h</td>
+			<td>0h</td>
+		</tr>
+		<tr class="total-row">
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+			<td>7h</td>
+			<td>0h</td>
+		</tr>
+	</tbody>
+</table>
+
+<div class="tag-box"><span class="status todo">N&atilde;o iniciada</span> <span class="status dev">Em desenvolvimento</span> <span class="status test">Em testes</span> <span class="status done">Conclu&iacute;do</span> <span class="status blocked">Bloqueado</span> <span class="status todo">Aguardando</span></div>
+</div>
+
+<div class="section">
+<div class="section-title">Registro de altera&ccedil;&atilde;o</div>
+<!-- Registro de alteração -->
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:20%">Classifica&ccedil;&atilde;o</th>
+			<th style="width:50%">Descri&ccedil;&atilde;o</th>
+			<th style="width:15%">Data</th>
+			<th style="width:15%">Respons&aacute;vel</th>
+		</tr>
+		<tr>
+			<td><span class="status feat">Novo recurso</span></td>
+			<td>[EXEMPLO] Cria&ccedil;&atilde;o da Classe: <a href="https://levty-dev.sydle.one/">Classe/Pacote</a></td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+
+<div class="tag-box"><span class="status feat">Novo recurso</span> <span class="status fix">Corre&ccedil;&atilde;o (Bugfix)</span> <span class="status refactor">Melhoria / Configura&ccedil;&atilde;o</span> <span class="status remove">Removido</span></div>
+</div>
+
+<div class="section">
+<div class="section-title">Roteiro de testes</div>
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:20%">T&oacute;pico</th>
+			<th style="width:50%">Descri&ccedil;&atilde;o</th>
+			<th style="width:15%">Data</th>
+			<th style="width:15%">Respons&aacute;vel</th>
+		</tr>
+		<tr>
+			<td>Passo 1</td>
+			<td>
+			<p><strong>Contexto</strong>: [EXEMPLO] Validar se o SYDLE ONE interpreta corretamente o JSON de retorno da API de assinatura.</p>
+
+			<p><strong>Sugest&atilde;o de teste 1:</strong> [EXEMPLO] Simular retorno HTTP 200 com <code>status: SIGNED</code>. Esperado: Contrato avan&ccedil;ar para fase &quot;Conclu&iacute;do&quot;.</p>
+
+			<p><strong>Sugest&atilde;o de teste 2:</strong> [EXEMPLO] Simular erro HTTP 401 (Token expirado). Esperado: Sistema registrar log de erro e notificar admin.</p>
+			</td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+
+<div class="section">
+<div class="section-title">Registro de testes</div>
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:50%">Descri&ccedil;&atilde;o</th>
+			<th style="width:20%">Status</th>
+			<th style="width:15%">Data</th>
+			<th style="width:15%">Respons&aacute;vel</th>
+		</tr>
+		<tr>
+			<td>
+			<p><strong>Contexto</strong>: [EXEMPLO] Valida&ccedil;&atilde;o do recebimento de Webhook da plataforma de assinatura ap&oacute;s a finaliza&ccedil;&atilde;o do documento pelo cliente.</p>
+
+			<p><strong>An&aacute;lise</strong>: [EXEMPLO] O log do SYDLE acusou o recebimento da requisi&ccedil;&atilde;o externa, por&eacute;m os dados do contrato n&atilde;o foram atualizados automaticamente como esperado.</p>
+
+			<p><strong>Problema</strong>: [EXEMPLO] O Scriptable Service n&atilde;o est&aacute; realizando o parse correto do ID externo enviado no cabe&ccedil;alho (Header), resultando em falha na localiza&ccedil;&atilde;o do objeto de neg&oacute;cio (BO) dentro do sistema.</p>
+
+			<p><strong>Sugest&atilde;o</strong>: [EXEMPLO] Alterar o script de integra&ccedil;&atilde;o para buscar o ID tanto no corpo da requisi&ccedil;&atilde;o (Body) quanto no Header, garantindo a compatibilidade.</p>
+			</td>
+			<td><span class="status pass">Sucesso</span></td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>
+			<p><strong>Contexto</strong>: [EXEMPLO] Teste de bloqueio de fase no processo de &quot;Solicita&ccedil;&atilde;o de Compras&quot; para compras acima de R$ 10.000,00.</p>
+
+			<p><strong>An&aacute;lise</strong>: [EXEMPLO] Ao tentar avan&ccedil;ar o fluxo, o sistema permite a transi&ccedil;&atilde;o mesmo sem a anexa&ccedil;&atilde;o de tr&ecirc;s or&ccedil;amentos obrigat&oacute;rios.</p>
+
+			<p><strong>Problema</strong>: [EXEMPLO] A Regra de Neg&oacute;cio est&aacute; configurada para validar o campo vl_total, mas n&atilde;o verifica a cardinalidade da lista de anexos vinculada ao BO.</p>
+
+			<p><strong>Sugest&atilde;o</strong>: [EXEMPLO] Implementar uma valida&ccedil;&atilde;o via script na transi&ccedil;&atilde;o de fase que conte os itens na classe de anexos e bloqueie o avan&ccedil;o se count &lt; 3.</p>
+			</td>
+			<td><span class="status fail">Erro</span></td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+
+<div class="tag-box"><span class="status pass">Sucesso</span> <span class="status warn">Aten&ccedil;&atilde;o</span> <span class="status fail">Erro</span> <span class="status blocked">Impedido</span> <span class="status skip">N.A.</span></div>
+</div>
+
+<div class="section">
+<div class="section-title">Roteiro para deploy</div>
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:5%">#</th>
+			<th>Passo</th>
+		</tr>
+		<tr>
+			<td>1</td>
+			<td>[EXEMPLO] Gerar pacote de exporta&ccedil;&atilde;o incluindo: Classes, Workspace e Scriptables.</td>
+		</tr>
+		<tr>
+			<td>2</td>
+			<td>[EXEMPLO] Configurar <em>Global Parameters</em> em Produ&ccedil;&atilde;o com a <code>API_KEY</code> definitiva.</td>
+		</tr>
+		<tr>
+			<td>3</td>
+			<td>[EXEMPLO] Reiniciar os <em>Service Containers</em> de integra&ccedil;&atilde;o para aplicar novas regras de Script.</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+
+<div class="section">
+<div class="section-title">Hist&oacute;rias relacionadas</div>
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:20%">ID</th>
+			<th>Descri&ccedil;&atilde;o</th>
+		</tr>
+		<tr>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+
+<div class="section">
+<div class="section-title">D&uacute;vidas</div>
+
+<table>
+	<tbody>
+		<tr>
+			<th style="width:5%">#</th>
+			<th>Ponto em aberto</th>
+		</tr>
+		<tr>
+			<td>1</td>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+</div>
