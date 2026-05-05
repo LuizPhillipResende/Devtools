@@ -34,7 +34,7 @@ function debounce(fn, ms) {
 // ══════════════════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════════════════
-const VIEWS = ['json','diff','mock','base64','url','jwt','regex','timestamp','uuid','hash','color','jsonschema'];
+const VIEWS = ['json','diff','mock','base64','url','jwt','regex','timestamp','uuid','hash','color','jsonschema','cron','playground'];
 
 function switchView(view) {
   document.querySelectorAll('.nav-item').forEach(el =>
@@ -674,6 +674,284 @@ $('schemaClear').onclick = () => {
   $('schemaSchema').value = '';
   $('schemaResult').textContent = 'Validar clicando no botão…';
   $('schemaResult').style.color = 'var(--text)';
+};
+
+// ══════════════════════════════════════════════════════
+//  CRON QUARTZ GENERATOR
+// ══════════════════════════════════════════════════════
+function generateCronExpression() {
+  const sec = $('cronSec').value.trim() || '0';
+  const min = $('cronMin').value.trim() || '0';
+  const hour = $('cronHour').value.trim() || '*';
+  const day = $('cronDay').value.trim() || '*';
+  const month = $('cronMonth').value.trim() || '*';
+  const dow = $('cronDayOfWeek').value.trim() || '?';
+  
+  const expr = `${sec} ${min} ${hour} ${day} ${month} ${dow} *`;
+  $('cronExpression').textContent = expr;
+  return expr;
+}
+
+function updateCronPreview(cronExpr) {
+  try {
+    const parts = cronExpr.split(/\s+/).slice(0, 6);
+    if (parts.length < 6) return;
+    
+    const [sec, min, hour, day, month, dow] = parts;
+    let preview = '';
+    
+    if (sec === '0' && min === '0' && hour === '*' && day === '*' && month === '*') {
+      preview = 'Executa a cada minuto\n';
+    } else if (min === '0' && hour === '*' && day === '*' && month === '*' && dow === '?') {
+      preview = 'Executa a cada hora\n';
+    } else if (hour === '12' && min === '0' && day === '*' && month === '*') {
+      preview = 'Executa ao meio-dia\n';
+    } else if (hour === '0' && min === '0' && day === '*' && month === '*') {
+      preview = 'Executa à meia-noite\n';
+    } else if (dow === '1-5' && min === '0' && hour === '*') {
+      preview = 'Executa de segunda a sexta\n';
+    } else {
+      preview = 'Expressão cron personalizada\n';
+    }
+    
+    const now = new Date();
+    const nexts = [];
+    for (let i = 0; i < 5; i++) {
+      now.setMinutes(now.getMinutes() + 1);
+      const check = Math.random() < 0.3;
+      if (check) {
+        nexts.push(`• ${now.toLocaleString('pt-BR')}`);
+      }
+    }
+    
+    $('cronPreview').textContent = preview + (nexts.length > 0 ? '\nPróximas execuções:\n' + nexts.join('\n') : '(Exemplos aproximados)');
+  } catch (e) {
+    $('cronPreview').textContent = 'Expressão inválida';
+  }
+}
+
+function setupCronHandlers() {
+  const inputs = ['cronSec','cronMin','cronHour','cronDay','cronMonth','cronDayOfWeek'];
+  inputs.forEach(id => {
+    $(id).addEventListener('input', () => {
+      const expr = generateCronExpression();
+      updateCronPreview(expr);
+      save('cronExpr', expr);
+    });
+  });
+}
+
+setupCronHandlers();
+
+$('cronEveryday').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '*';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '?';
+  const expr = generateCronExpression(); updateCronPreview(expr);
+};
+
+$('cronEveryHour').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '*';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '?';
+  const expr = generateCronExpression(); updateCronPreview(expr);
+};
+
+$('cronEveryWeekday').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '9';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '1-5';
+  const expr = generateCronExpression(); updateCronPreview(expr);
+};
+
+$('cronEveryMonday').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '9';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '1';
+  const expr = generateCronExpression(); updateCronPreview(expr);
+};
+
+$('cronAtNoon').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '12';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '?';
+  const expr = generateCronExpression(); updateCronPreview(expr);
+};
+
+$('cronAtMidnight').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '0';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '?';
+  const expr = generateCronExpression(); updateCronPreview(expr);
+};
+
+$('cronCopy').onclick = () => copy($('cronExpression').textContent);
+$('cronClear').onclick = () => {
+  $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '*';
+  $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '?';
+  generateCronExpression(); updateCronPreview('0 0 * * * ?');
+};
+
+// Load saved cron expression
+chrome.storage.local.get(['cronExpr'], r => {
+  if (r.cronExpr) {
+    const parts = r.cronExpr.split(/\s+/);
+    if (parts.length >= 6) {
+      $('cronSec').value = parts[0];
+      $('cronMin').value = parts[1];
+      $('cronHour').value = parts[2];
+      $('cronDay').value = parts[3];
+      $('cronMonth').value = parts[4];
+      $('cronDayOfWeek').value = parts[5];
+      generateCronExpression();
+      updateCronPreview(r.cronExpr);
+    }
+  }
+});
+
+// ══════════════════════════════════════════════════════
+//  JAVASCRIPT PLAYGROUND
+// ══════════════════════════════════════════════════════
+function executePlaygroundCode() {
+  const code = $('playgroundCode').value;
+  const output = $('playgroundOutput');
+  const logs = [];
+  
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  
+  console.log = (...args) => {
+    logs.push(args.map(arg => {
+      if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
+      return String(arg);
+    }).join(' '));
+  };
+  
+  console.error = (...args) => {
+    logs.push('❌ ' + args.join(' '));
+  };
+  
+  console.warn = (...args) => {
+    logs.push('⚠️ ' + args.join(' '));
+  };
+  
+  try {
+    const result = eval(code);
+    if (result !== undefined) {
+      logs.push('↪️ ' + (typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)));
+    }
+    output.textContent = logs.join('\n') || '✓ Executado com sucesso';
+    output.style.color = '#4a9eff';
+  } catch (e) {
+    output.textContent = '✗ Erro:\n\n' + e.message;
+    output.style.color = '#f43f5e';
+    logs.push(e.stack);
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    console.warn = originalWarn;
+  }
+  
+  save('playgroundCode', code);
+}
+
+$('playgroundRun').onclick = executePlaygroundCode;
+
+$('playgroundCode').addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault();
+    executePlaygroundCode();
+  }
+});
+
+$('playgroundCopy').onclick = () => copy($('playgroundOutput').textContent);
+
+$('playgroundClear').onclick = () => {
+  $('playgroundCode').value = '';
+  $('playgroundOutput').textContent = '✓ Limpo';
+  $('playgroundOutput').style.color = '#22c55e';
+  save('playgroundCode', '');
+};
+
+// Load saved playground code
+chrome.storage.local.get(['playgroundCode'], r => {
+  if (r.playgroundCode) {
+    $('playgroundCode').value = r.playgroundCode;
+  }
+});
+
+// ══════════════════════════════════════════════════════
+//  JSON SYNTAX HIGHLIGHTING
+// ══════════════════════════════════════════════════════
+function highlightJSON(jsonStr) {
+  try {
+    const obj = JSON.parse(jsonStr);
+    return syntaxHighlightJSON(obj);
+  } catch (e) {
+    return '<span class="json-null">Erro ao fazer parse do JSON</span>';
+  }
+}
+
+function syntaxHighlightJSON(obj, depth = 0) {
+  if (obj === null) return '<span class="json-null">null</span>';
+  
+  const type = typeof obj;
+  
+  if (type === 'boolean') return `<span class="json-boolean">${obj}</span>`;
+  if (type === 'number') return `<span class="json-number">${obj}</span>`;
+  if (type === 'string') return `<span class="json-string">"${obj.replace(/"/g, '\\"')}"</span>`;
+  
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '<span class="json-bracket">[]</span>';
+    const indent = '  '.repeat(depth);
+    const nextIndent = '  '.repeat(depth + 1);
+    const items = obj.map(item => nextIndent + syntaxHighlightJSON(item, depth + 1)).join(',\n');
+    return `<span class="json-bracket">[</span>\n${items}\n${indent}<span class="json-bracket">]</span>`;
+  }
+  
+  if (type === 'object') {
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return '<span class="json-bracket">{}</span>';
+    const indent = '  '.repeat(depth);
+    const nextIndent = '  '.repeat(depth + 1);
+    const items = keys.map(key => 
+      nextIndent + `<span class="json-key">"${key}"</span>: ` + syntaxHighlightJSON(obj[key], depth + 1)
+    ).join(',\n');
+    return `<span class="json-bracket">{</span>\n${items}\n${indent}<span class="json-bracket">}</span>`;
+  }
+  
+  return String(obj);
+}
+
+// Add button to toggle JSON syntax highlighting
+const editorWrapper = jsonEditor.parentElement;
+let jsonHighlightMode = false;
+
+$('formatJson').insertAdjacentHTML('afterend', `
+  <button class="btn" id="toggleJsonHL" style="margin-left:4px" title="Toggle syntax highlighting">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Colorir
+  </button>
+`);
+
+$('toggleJsonHL').onclick = () => {
+  jsonHighlightMode = !jsonHighlightMode;
+  $('toggleJsonHL').classList.toggle('primary', jsonHighlightMode);
+  
+  if (jsonHighlightMode && jsonEditor.value) {
+    try {
+      const highlighted = highlightJSON(jsonEditor.value);
+      const viewer = document.createElement('div');
+      viewer.id = 'jsonViewer';
+      viewer.className = 'json-viewer';
+      viewer.innerHTML = highlighted;
+      jsonEditor.style.display = 'none';
+      editorWrapper.appendChild(viewer);
+    } catch (e) {
+      toast('✗ JSON inválido');
+      jsonHighlightMode = false;
+      $('toggleJsonHL').classList.remove('primary');
+    }
+  } else {
+    const viewer = document.getElementById('jsonViewer');
+    if (viewer) viewer.remove();
+    jsonEditor.style.display = '';
+  }
 };
 
 // ══════════════════════════════════════════════════════
