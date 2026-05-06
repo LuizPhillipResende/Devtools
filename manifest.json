@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "DevTools CORP",
+  "version": "4.1",
+  "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  }
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<script>
+// This page runs in sandbox context, free of extension CSP
+window.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'EXECUTE') {
+    const code = event.data.code;
+    const logs = [];
+
+    const fmt = (arg) => {
+      if (arg === null) return 'null';
+      if (arg === undefined) return 'undefined';
+      if (typeof arg === 'object') {
+        try { return JSON.stringify(arg, null, 2); } catch { return String(arg); }
+      }
+      return String(arg);
+    };
+
+    const _log   = console.log;
+    const _error = console.error;
+    const _warn  = console.warn;
+    const _info  = console.info;
+
+    console.log   = (...a) => logs.push({ type: 'log',   text: a.map(fmt).join(' ') });
+    console.error = (...a) => logs.push({ type: 'error', text: '❌ ' + a.map(fmt).join(' ') });
+    console.warn  = (...a) => logs.push({ type: 'warn',  text: '⚠️ ' + a.map(fmt).join(' ') });
+    console.info  = (...a) => logs.push({ type: 'info',  text: 'ℹ️ ' + a.map(fmt).join(' ') });
+
+    try {
+      // new Function works in sandboxed context
+      const fn = new Function(code);
+      const result = fn();
+      if (result !== undefined) {
+        logs.push({ type: 'result', text: '↪️ ' + fmt(result) });
+      }
+      event.source.postMessage({ type: 'RESULT', success: true, logs }, '*');
+    } catch(e) {
+      logs.push({ type: 'error', text: '✗ ' + e.message });
+      if (e.stack) logs.push({ type: 'stack', text: e.stack.split('\n').slice(1, 3).join('\n') });
+      event.source.postMessage({ type: 'RESULT', success: false, logs }, '*');
+    } finally {
+      console.log   = _log;
+      console.error = _error;
+      console.warn  = _warn;
+      console.info  = _info;
+    }
+  }
+});
+</script>
+</body>
+</html>

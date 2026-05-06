@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:   #0EA5E9;
+  --accent-d: #0284C7;
+  --accent-g: rgba(14,165,233,.12);
+  --bg:       #0c0c10;
+  --s1:       #13131a;
+  --s2:       #1a1a24;
+  --s3:       #22222f;
+  --border:   #27273a;
+  --text:     #e2e2f0;
+  --muted:    #5a5a78;
+  --add:      #22c55e;
+  --add-bg:   rgba(34,197,94,.13);
+  --del:      #f43f5e;
+  --del-bg:   rgba(244,63,94,.13);
+  --font-ui:  'Segoe UI', system-ui, sans-serif;
+  --font-mono:'Cascadia Code','Fira Code',Consolas,monospace;
+  --sidebar:  128px;
+}
+
+html, body {
+  width: 800px;
+  height: 580px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+/* ── SHELL ── */
+.shell { display:flex; height:100%; width:100%; overflow:hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar);
+  background: var(--s1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.brand {
+  padding: 14px 12px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.brand-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.brand-ver {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 1px;
+  letter-spacing: .05em;
+}
+
+.nav { flex:1; overflow-y:auto; overflow-x:hidden; padding: 4px 0; }
+.nav::-webkit-scrollbar { width:3px; }
+.nav::-webkit-scrollbar-thumb { background: var(--border); border-radius:2px; }
+
+.nav-section {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 12px 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  border-left: 2px solid transparent;
+  transition: color .12s, background .12s, border-color .12s;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.nav-item:hover { color: var(--text); background: rgba(14,165,233,.06); }
+.nav-item.active {
+  color: var(--text);
+  background: var(--accent-g);
+  border-left-color: var(--accent);
+}
+.nav-item svg { width:14px; height:14px; flex-shrink:0; }
+
+/* ── MAIN ── */
+.main {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  overflow:hidden;
+}
+
+/* ── VIEW ── */
+.view {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+}
+.view.hidden { display:none!important; }
+
+/* ── GENERIC EDITOR ── */
+.editor-wrap { flex:1; min-height:0; overflow:hidden; position:relative; }
+
+textarea.code {
+  width:100%; height:100%;
+  background: var(--bg);
+  color: #c9d1d9;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  border:none; outline:none; resize:none;
+  padding: 12px 14px;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  caret-color: var(--accent);
+}
+textarea.code::placeholder { color: var(--muted); opacity:.45; }
+textarea.code:focus { box-shadow: inset 2px 0 0 var(--accent); }
+
+/* ── ACTION BAR ── */
+.actionbar {
+  height: 38px;
+  border-top: 1px solid var(--border);
+  background: var(--s1);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.ab-sep { flex:1; }
+
+.btn {
+  display:flex; align-items:center; gap:4px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0 9px;
+  height: 24px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.btn:hover { background:var(--s3); color:var(--text); border-color:#333348; }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover { background:var(--accent-d); border-color:var(--accent-d); }
+.btn.danger { color:var(--del); }
+.btn.danger:hover { border-color:var(--del); background:rgba(244,63,94,.08); }
+.btn svg { width:11px; height:11px; flex-shrink:0; }
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 9px; color: var(--muted);
+  background: var(--s2); border:1px solid var(--border);
+  border-radius:3px; padding:1px 5px;
+}
+
+/* ── DIFF VIEW ── */
+.diff-cols {
+  flex:1; display:flex; min-height:0; overflow:hidden;
+}
+.diff-col {
+  flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden;
+}
+.diff-col + .diff-col { border-left: 1px solid var(--border); }
+
+.diff-col-head {
+  height:26px; display:flex; align-items:center; padding:0 10px;
+  background:var(--s1); border-bottom:1px solid var(--border);
+  font-size:10px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); flex-shrink:0;
+  gap:6px;
+}
+.col-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+/* side-by-side diff renderer */
+.diff-render {
+  flex:1; overflow:auto; font-family:var(--font-mono); font-size:11.5px;
+  line-height:1.55; background:var(--bg);
+  padding: 0;
+}
+.diff-render::-webkit-scrollbar { width:5px; height:5px; }
+.diff-render::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+table.diff-table { width:100%; border-collapse:collapse; }
+table.diff-table td {
+  padding: 1px 12px 1px 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  vertical-align:top;
+}
+.ln {
+  width:30px; text-align:right; padding:1px 6px;
+  color:var(--muted); user-select:none; font-size:10px;
+  border-right:1px solid var(--border); background:var(--s1);
+  flex-shrink:0;
+}
+tr.r-add td { background:var(--add-bg); color:var(--add); }
+tr.r-del td { background:var(--del-bg); color:var(--del); }
+tr.r-ctx td { color:#4a4a68; }
+tr.r-ctx .ln { color:#333348; }
+
+/* ── BASE64 ── */
+.tool-grid {
+  flex:1; display:flex; flex-direction:column; gap:0; min-height:0; overflow:hidden;
+}
+.tg-row { display:flex; flex-direction:column; flex:1; min-height:0; }
+.tg-label {
+  padding:5px 12px;
+  font-size:10px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted);
+  background:var(--s1); border-bottom:1px solid var(--border); border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.tg-row:first-child .tg-label { border-top:none; }
+
+/* ── URL TOOLS ── */
+.url-area {
+  flex:1; display:flex; flex-direction:column; gap:0; min-height:0; overflow:auto;
+  padding:14px;
+}
+.url-row { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
+.url-row label { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.url-row textarea, .url-row input {
+  background:var(--s2); border:1px solid var(--border); color:var(--text);
+  font-family:var(--font-mono); font-size:11.5px; border-radius:5px;
+  padding:8px 10px; outline:none; resize:none;
+  transition: border-color .12s;
+}
+.url-row textarea:focus, .url-row input:focus { border-color:var(--accent); }
+.url-row textarea { height:60px; }
+
+.qs-table { width:100%; border-collapse:collapse; margin-top:4px; }
+.qs-table th, .qs-table td {
+  padding:5px 10px; text-align:left; font-size:11px;
+  border-bottom:1px solid var(--border);
+}
+.qs-table th { color:var(--muted); font-weight:600; font-size:10px; letter-spacing:.06em; text-transform:uppercase; }
+.qs-table td { font-family:var(--font-mono); color:var(--text); word-break:break-all; }
+.qs-key { color:var(--accent); }
+
+/* ── JWT ── */
+.jwt-area {
+  flex:1; display:flex; flex-direction:column; overflow:auto; padding:14px; gap:10px;
+}
+.jwt-part { display:flex; flex-direction:column; gap:4px; }
+.jwt-part label { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.jwt-code {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:5px; padding:10px 12px;
+  font-family:var(--font-mono); font-size:11px; line-height:1.6;
+  color:#c9d1d9; white-space:pre-wrap; word-break:break-all;
+  min-height:54px; max-height:140px; overflow:auto;
+}
+.jwt-badge {
+  display:inline-block; font-size:9px; font-weight:700;
+  padding:1px 6px; border-radius:3px; margin-left:6px;
+  text-transform:uppercase; letter-spacing:.07em;
+}
+.jwt-header-lbl { color:#f59e0b; }
+.jwt-payload-lbl { color:var(--accent); }
+.jwt-sig-lbl { color:#a78bfa; }
+
+.jwt-token-input {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:5px; padding:8px 10px;
+  font-family:var(--font-mono); font-size:11.5px; color:var(--text);
+  outline:none; resize:none; height:60px; width:100%;
+  transition: border-color .12s;
+}
+.jwt-token-input:focus { border-color:var(--accent); }
+
+/* ── REGEX ── */
+.regex-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.regex-top {
+  display:flex; gap:8px; align-items:center;
+  padding:10px 12px; border-bottom:1px solid var(--border);
+  background:var(--s1); flex-shrink:0;
+}
+.regex-input {
+  flex:1; background:var(--s2); border:1px solid var(--border);
+  border-radius:5px; padding:5px 10px;
+  font-family:var(--font-mono); font-size:12px; color:var(--text);
+  outline:none; transition:border-color .12s;
+}
+.regex-input:focus { border-color:var(--accent); }
+.regex-flags {
+  width:60px; background:var(--s2); border:1px solid var(--border);
+  border-radius:5px; padding:5px 8px;
+  font-family:var(--font-mono); font-size:12px; color:var(--text);
+  outline:none;
+}
+.regex-match-count {
+  font-size:10px; color:var(--accent); font-weight:700;
+  white-space:nowrap;
+}
+.regex-body { flex:1; position:relative; min-height:0; overflow:hidden; }
+.regex-textarea {
+  position:absolute; inset:0;
+  background:transparent; color:transparent; caret-color:var(--text);
+  font-family:var(--font-mono); font-size:12px; line-height:1.6;
+  border:none; outline:none; resize:none; padding:12px 14px;
+  white-space:pre-wrap; word-break:break-all; overflow:auto; z-index:2;
+}
+.regex-highlight {
+  position:absolute; inset:0;
+  font-family:var(--font-mono); font-size:12px; line-height:1.6;
+  padding:12px 14px; white-space:pre-wrap; word-break:break-all;
+  overflow:auto; pointer-events:none; color:#c9d1d9; z-index:1;
+}
+.regex-highlight mark {
+  background:rgba(14,165,233,.35); color:#e2e2f0;
+  border-radius:2px; outline:1px solid rgba(14,165,233,.6);
+}
+
+/* ── TIMESTAMP ── */
+.ts-area { flex:1; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+.ts-row { display:flex; flex-direction:column; gap:4px; }
+.ts-row label { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.ts-input {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:5px; padding:7px 10px;
+  font-family:var(--font-mono); font-size:13px; color:var(--text);
+  outline:none; width:100%; transition:border-color .12s;
+}
+.ts-input:focus { border-color:var(--accent); }
+.ts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.ts-cell {
+  background:var(--s2); border:1px solid var(--border); border-radius:5px;
+  padding:10px 12px;
+}
+.ts-cell-label { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.ts-cell-val { font-family:var(--font-mono); font-size:12px; color:var(--text); word-break:break-all; }
+.ts-now { font-size:10px; color:var(--accent); cursor:pointer; text-decoration:underline; }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed; bottom:12px; right:12px;
+  background:var(--accent); color:#fff;
+  padding:5px 14px; border-radius:5px;
+  font-size:11px; font-weight:700;
+  opacity:0; transform:translateY(5px);
+  transition:opacity .15s, transform .15s;
+  pointer-events:none; z-index:999;
+}
+#toast.show { opacity:1; transform:translateY(0); }
+
+/* ── JSON SYNTAX HIGHLIGHTING ── */
+.json-viewer {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:4px; padding:10px 12px;
+  font-family:var(--font-mono); font-size:11px; line-height:1.6;
+  color:var(--text); white-space:pre-wrap; word-break:break-all;
+  overflow-y:auto; max-height:400px;
+}
+.json-key { color:#f59e0b; font-weight:600; }
+.json-string { color:#22c55e; }
+.json-number { color:#a78bfa; }
+.json-boolean { color:#3b82f6; }
+.json-null { color:#6b7280; font-style:italic; }
+.json-bracket { color:var(--text); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+
+/* ── DIAGRAM TOOLS ── */
+.dtool {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; border: none; background: transparent;
+  cursor: pointer; color: #555; transition: all .12s;
+  flex-shrink: 0;
+}
+.dtool svg { width: 15px; height: 15px; }
+.dtool:hover { background: #e0e0e0; color: #222; }
+.dtool.active { background: #0EA5E9; color: #fff; }
+
+.color-swatch {
+  width: 18px; height: 18px; border-radius: 3px;
+  cursor: pointer; border: 1.5px solid #ccc;
+  flex-shrink: 0; transition: transform .1s;
+}
+.color-swatch:hover { transform: scale(1.2); border-color: #0EA5E9; }
+.color-swatch.active-swatch { border: 2px solid #0EA5E9; }
+
+.dbtn {
+  display: flex; align-items: center; gap: 4px;
+  background: #f0f0f0; border: 1px solid #d0d0d0;
+  color: #555; padding: 0 8px; height: 24px;
+  font-size: 11px; font-family: var(--font-ui); font-weight: 600;
+  cursor: pointer; border-radius: 4px; transition: all .12s;
+  white-space: nowrap;
+}
+.dbtn:hover { background: #e0e0e0; color: #222; border-color: #bbb; }
+.dbtn.danger { color: #e53e3e; }
+.dbtn.danger:hover { background: rgba(229,62,62,.1); border-color: #e53e3e; }
+
+#diagramCanvasWrap { cursor: default; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-name">DevTools</div>
+    <div class="brand-ver">CORP · v4.0</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Core</div>
+
+    <div class="nav-item active" data-view="json">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>
+      </svg>
+      JSON Pretty
+    </div>
+
+    <div class="nav-item" data-view="diff">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 3v18M3 9l4-4 4 4M3 15l4 4 4-4M17 9l4-4M17 15l4 4"/>
+      </svg>
+      Diff Check
+    </div>
+
+    <div class="nav-item" data-view="mock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 9h18M9 21V9"/>
+      </svg>
+      Details Mock
+    </div>
+
+    <div class="nav-item" data-view="playground">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+      </svg>
+      JS Playground
+    </div>
+
+    <div class="nav-item" data-view="diagram">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <circle cx="6.5" cy="16" r="3.5"/><line x1="10" y1="16" x2="14" y2="16"/>
+        <line x1="19" y1="10" x2="19" y2="13"/>
+      </svg>
+      Automatos
+    </div>
+
+    <div class="nav-section">Utilitários</div>
+
+    <div class="nav-item" data-view="base64">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+      </svg>
+      Base64
+    </div>
+
+    <div class="nav-item" data-view="url">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+      URL Tools
+    </div>
+
+    <div class="nav-item" data-view="jwt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      JWT Decoder
+    </div>
+
+    <div class="nav-item" data-view="regex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+      Regex Tester
+    </div>
+
+    <div class="nav-item" data-view="timestamp">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Timestamp
+    </div>
+
+    <div class="nav-item" data-view="cron">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/>
+        <path d="M12 2v4M12 18v4M5 12H1M23 12h-4"/>
+      </svg>
+      Cron-Quartz
+    </div>
+
+    <div class="nav-section">Geradores</div>
+
+    <div class="nav-item" data-view="uuid">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      UUID Generator
+    </div>
+
+    <div class="nav-item" data-view="hash">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 9l6 6M15 9l-6 6"/>
+      </svg>
+      Hash Generator
+    </div>
+
+    <div class="nav-item" data-view="color">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/><circle cx="12" cy="2" r="2"/>
+      </svg>
+      Color Converter
+    </div>
+
+    <div class="nav-item" data-view="jsonschema">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 11l3 3L22 4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+      </svg>
+      JSON Schema
+    </div>
+
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ── JSON PRETTY ── -->
+  <div id="jsonView" class="view">
+    <div class="editor-wrap">
+      <textarea id="jsonEditor" class="code" spellcheck="false" placeholder='Cole seu JSON aqui…&#10;&#10;Ctrl+Shift+F → Formatar'></textarea>
+    </div>
+    <div class="actionbar">
+      <button class="btn primary" id="formatJson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Formatar
+      </button>
+      <button class="btn" id="minifyJson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        Minificar
+      </button>
+      <button class="btn" id="copyJson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar
+      </button>
+      <div class="ab-sep"></div>
+      <span class="kbd">Ctrl+Shift+F</span>
+      <button class="btn danger" id="clearJson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- ── DIFF CHECK ── -->
+  <div id="diffView" class="view hidden">
+    <div class="diff-cols">
+      <div class="diff-col">
+        <div class="diff-col-head">
+          <span class="col-dot" style="background:var(--del)"></span>
+          Original (A)
+        </div>
+        <div class="editor-wrap">
+          <textarea id="diffA" class="code" spellcheck="false" placeholder="Texto original…"></textarea>
+        </div>
+      </div>
+      <div class="diff-col">
+        <div class="diff-col-head">
+          <span class="col-dot" style="background:var(--add)"></span>
+          Modificado (B)
+        </div>
+        <div class="editor-wrap">
+          <textarea id="diffB" class="code" spellcheck="false" placeholder="Texto modificado…"></textarea>
+        </div>
+      </div>
+      <div class="diff-col">
+        <div class="diff-col-head" style="color:var(--accent)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M12 3v18M3 9l4-4 4 4M3 15l4 4 4-4M17 9l4-4M17 15l4 4"/></svg>
+          Resultado
+        </div>
+        <div class="diff-render" id="diffRender">
+          <table class="diff-table"><tbody id="diffTbody">
+            <tr class="r-ctx"><td class="ln"></td><td>Edite os painéis para ver o diff…</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="copyDiff">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar diff
+      </button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="clearDiff">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MOCK ── -->
+  <div id="mockView" class="view hidden">
+    <div class="editor-wrap">
+      <textarea id="mockEditor" class="code" spellcheck="false" placeholder="Cole seu HTML de mock aqui…"></textarea>
+    </div>
+    <div class="actionbar">
+      <button class="btn primary" id="copyMock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar HTML
+      </button>
+      <button class="btn" id="reloadMock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.6"/></svg>
+        Resetar
+      </button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="clearMock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- ── BASE64 ── -->
+  <div id="base64View" class="view hidden">
+    <div class="tool-grid">
+      <div class="tg-row">
+        <div class="tg-label">Texto / Entrada</div>
+        <div class="editor-wrap">
+          <textarea id="b64Input" class="code" spellcheck="false" placeholder="Digite ou cole o texto aqui…"></textarea>
+        </div>
+      </div>
+      <div class="tg-row">
+        <div class="tg-label">Base64 / Saída</div>
+        <div class="editor-wrap">
+          <textarea id="b64Output" class="code" spellcheck="false" placeholder="Resultado aparece aqui…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn primary" id="b64Encode">Encode →</button>
+      <button class="btn primary" id="b64Decode">← Decode</button>
+      <button class="btn" id="b64Copy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar saída
+      </button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="b64Clear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── URL TOOLS ── -->
+  <div id="urlView" class="view hidden">
+    <div class="url-area">
+      <div class="url-row">
+        <label>URL / Entrada</label>
+        <textarea id="urlInput" placeholder="Cole uma URL ou texto aqui…"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-shrink:0">
+        <button class="btn primary" id="urlEncode">Encode</button>
+        <button class="btn primary" id="urlDecode">Decode</button>
+        <button class="btn" id="urlCopy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar
+        </button>
+      </div>
+      <div class="url-row">
+        <label>Saída</label>
+        <textarea id="urlOutput" placeholder="Resultado…" readonly></textarea>
+      </div>
+      <div class="url-row">
+        <label>Query String Parser</label>
+        <input id="urlQS" placeholder="https://exemplo.com?foo=bar&id=42" />
+      </div>
+      <div id="urlQSResult" style="flex:1;overflow:auto;min-height:60px">
+        <table class="qs-table">
+          <thead><tr><th>Parâmetro</th><th>Valor</th></tr></thead>
+          <tbody id="urlQSTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── JWT DECODER ── -->
+  <div id="jwtView" class="view hidden">
+    <div class="jwt-area">
+      <div class="jwt-part">
+        <label>Token JWT</label>
+        <textarea id="jwtInput" class="jwt-token-input" spellcheck="false" placeholder="Cole seu token JWT aqui…"></textarea>
+      </div>
+      <div class="jwt-part">
+        <label><span class="jwt-header-lbl">● Header</span></label>
+        <div class="jwt-code" id="jwtHeader">—</div>
+      </div>
+      <div class="jwt-part">
+        <label><span class="jwt-payload-lbl">● Payload</span></label>
+        <div class="jwt-code" id="jwtPayload">—</div>
+      </div>
+      <div class="jwt-part">
+        <label style="display:flex;align-items:center;gap:6px">
+          <span class="jwt-sig-lbl">● Exp / IAT</span>
+          <span id="jwtExpBadge"></span>
+        </label>
+        <div class="jwt-code" id="jwtExp">—</div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="jwtCopyPayload">Copiar Payload</button>
+      <button class="btn danger" id="jwtClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── REGEX TESTER ── -->
+  <div id="regexView" class="view hidden">
+    <div class="regex-area">
+      <div class="regex-top">
+        <span style="font-size:14px;color:var(--muted);font-family:var(--font-mono)">/</span>
+        <input id="regexPattern" class="regex-input" placeholder="padrão…" spellcheck="false"/>
+        <span style="font-size:14px;color:var(--muted);font-family:var(--font-mono)">/</span>
+        <input id="regexFlags" class="regex-flags" value="gi" placeholder="gi" spellcheck="false" title="Flags: g i m s u"/>
+        <span class="regex-match-count" id="regexCount"></span>
+      </div>
+      <div class="regex-body">
+        <div class="regex-highlight" id="regexHL" aria-hidden="true"></div>
+        <textarea id="regexText" class="regex-textarea" spellcheck="false" placeholder="Digite o texto para testar a regex aqui…"></textarea>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="regexCopy">Copiar matches</button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="regexClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── TIMESTAMP ── -->
+  <div id="timestampView" class="view hidden">
+    <div class="ts-area">
+      <div class="ts-row">
+        <label>Unix Timestamp → Data</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="tsUnix" class="ts-input" style="flex:1" type="number" placeholder="Ex: 1714512000"/>
+          <button class="btn primary" id="tsConvert">Converter</button>
+          <span class="ts-now" id="tsNow">Agora</span>
+        </div>
+      </div>
+      <div class="ts-grid" id="tsResults" style="display:none">
+        <div class="ts-cell"><div class="ts-cell-label">Local</div><div class="ts-cell-val" id="tsLocal"></div></div>
+        <div class="ts-cell"><div class="ts-cell-label">UTC</div><div class="ts-cell-val" id="tsUTC"></div></div>
+        <div class="ts-cell"><div class="ts-cell-label">ISO 8601</div><div class="ts-cell-val" id="tsISO"></div></div>
+        <div class="ts-cell"><div class="ts-cell-label">Relativo</div><div class="ts-cell-val" id="tsRelative"></div></div>
+      </div>
+      <div class="ts-row" style="margin-top:4px">
+        <label>Data → Unix Timestamp</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="tsDate" class="ts-input" style="flex:1" type="datetime-local"/>
+          <button class="btn primary" id="tsDateConvert">Converter</button>
+        </div>
+      </div>
+      <div class="ts-cell" id="tsDateResult" style="display:none">
+        <div class="ts-cell-label">Unix Timestamp</div>
+        <div class="ts-cell-val" id="tsDateVal" style="font-size:16px;font-weight:700;color:var(--accent)"></div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="tsCopy">Copiar timestamp</button>
+    </div>
+  </div>
+
+  <!-- ── UUID GENERATOR ── -->
+  <div id="uuidView" class="view hidden">
+    <div class="tool-grid" style="flex-direction: column; gap: 12px;">
+      <div class="tg-row">
+        <label>Versão UUID</label>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="uuidV1" style="flex:1;background:var(--s2)">v1 (Time)</button>
+          <button class="btn primary" id="uuidV4" style="flex:1">v4 (Random)</button>
+        </div>
+      </div>
+      <div class="tg-row">
+        <label>Saída</label>
+        <div class="editor-wrap">
+          <textarea id="uuidOutput" class="code" readonly placeholder="UUIDs gerados aparecerão aqui…"></textarea>
+        </div>
+      </div>
+      <div class="tg-row">
+        <label>Quantidade</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="uuidCount" type="number" value="1" min="1" max="100" style="flex:1;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          <button class="btn primary" id="uuidGen">Gerar</button>
+        </div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="uuidCopy">Copiar</button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="uuidClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── HASH GENERATOR ── -->
+  <div id="hashView" class="view hidden">
+    <div class="tool-grid">
+      <div class="tg-row">
+        <label>Texto / Entrada</label>
+        <div class="editor-wrap">
+          <textarea id="hashInput" class="code" spellcheck="false" placeholder="Cole o texto aqui…"></textarea>
+        </div>
+      </div>
+      <div class="tg-row">
+        <label>SHA256</label>
+        <div class="editor-wrap">
+          <textarea id="hashSHA256" class="code" readonly placeholder="Hash SHA256…"></textarea>
+        </div>
+      </div>
+      <div class="tg-row">
+        <label>MD5</label>
+        <div class="editor-wrap">
+          <textarea id="hashMD5" class="code" readonly placeholder="Hash MD5…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="hashCopySHA">Copiar SHA256</button>
+      <button class="btn" id="hashCopyMD5">Copiar MD5</button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="hashClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── COLOR CONVERTER ── -->
+  <div id="colorView" class="view hidden">
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px;padding:12px;overflow:auto">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:8px">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Visualização</label>
+        <div id="colorPreview" style="width:100%;height:80px;background:#FF0000;border-radius:4px;border:2px solid var(--border)"></div>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">Hex</label>
+        <input id="colorHex" type="text" placeholder="#FF0000" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">RGB</label>
+        <input id="colorRGB" type="text" placeholder="rgb(255, 0, 0)" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">HSL</label>
+        <input id="colorHSL" type="text" placeholder="hsl(0, 100%, 50%)" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="colorCopyHex">Copiar Hex</button>
+      <button class="btn" id="colorCopyRGB">Copiar RGB</button>
+      <button class="btn" id="colorCopyHSL">Copiar HSL</button>
+    </div>
+  </div>
+
+  <!-- ── JSON SCHEMA VALIDATOR ── -->
+  <div id="jsonschemaView" class="view hidden">
+    <div class="diff-cols">
+      <div class="diff-col">
+        <div class="diff-col-head">JSON</div>
+        <div class="editor-wrap">
+          <textarea id="schemaJson" class="code" spellcheck="false" placeholder="Cole seu JSON aqui…"></textarea>
+        </div>
+      </div>
+      <div class="diff-col">
+        <div class="diff-col-head">Schema</div>
+        <div class="editor-wrap">
+          <textarea id="schemaSchema" class="code" spellcheck="false" placeholder="Cole o JSON Schema aqui…"></textarea>
+        </div>
+      </div>
+      <div class="diff-col">
+        <div class="diff-col-head" style="color:var(--accent)">Resultado</div>
+        <div class="diff-render" style="background:var(--bg);overflow-y:auto">
+          <div id="schemaResult" style="padding:12px;color:var(--text);font-family:var(--font-mono);white-space:pre-wrap;word-break:break-word;font-size:12px">Validar clicando no botão…</div>
+        </div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn primary" id="schemaValidate">Validar</button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="schemaClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── CRON QUARTZ GENERATOR ── -->
+  <div id="cronView" class="view hidden">
+    <div style="flex:1;display:flex;flex-direction:column;gap:0;overflow:hidden">
+      <div style="flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Segundo</label>
+            <input id="cronSec" type="text" value="0" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Minuto</label>
+            <input id="cronMin" type="text" value="0" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Hora</label>
+            <input id="cronHour" type="text" value="*" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Dia do mês</label>
+            <input id="cronDay" type="text" value="*" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Mês</label>
+            <input id="cronMonth" type="text" value="*" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Dia da semana</label>
+            <input id="cronDayOfWeek" type="text" value="?" style="width:100%;padding:6px 8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono)"/>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn primary" id="cronEveryday">Todos os dias</button>
+          <button class="btn" id="cronEveryHour">Cada hora</button>
+          <button class="btn" id="cronEveryWeekday">Seg-Sex</button>
+          <button class="btn" id="cronEveryMonday">Segundas</button>
+          <button class="btn" id="cronAtNoon">Ao meio-dia</button>
+          <button class="btn" id="cronAtMidnight">Meia-noite</button>
+        </div>
+
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Colar Expressão Cron (bidirecional)</label>
+          <input id="cronExprInput" type="text" value="" style="width:100%;padding:8px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono);font-size:11px;margin-bottom:8px" placeholder="Cole uma expressão CRON para parsear…"/>
+        </div>
+
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Expressão Cron Gerada</label>
+          <div style="background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font-mono);color:var(--text);font-size:13px;word-break:break-all" id="cronExpression">0 0 * * ? *</div>
+        </div>
+
+        <div id="cronPreview" style="background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font-mono);color:var(--text);font-size:11px;white-space:pre-wrap;line-height:1.6;max-height:120px;overflow-y:auto">Próximas execuções aparecerão aqui…</div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn" id="cronCopy">Copiar expressão</button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="cronClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── JS PLAYGROUND ── -->
+  <div id="playgroundView" class="view hidden">
+    <div style="flex:1;display:flex;flex-direction:row;min-height:0;overflow:hidden">
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+        <div style="height:26px;display:flex;align-items:center;padding:0 10px;background:var(--s1);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex-shrink:0">
+          Editor
+        </div>
+        <div class="editor-wrap">
+          <textarea id="playgroundCode" class="code" spellcheck="false" placeholder="Digite seu código JavaScript aqui…&#10;&#10;Ex: console.log('Olá!')">console.log('Olá, DevTools!')</textarea>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;border-left:1px solid var(--border)">
+        <div style="height:26px;display:flex;align-items:center;padding:0 10px;background:var(--s1);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex-shrink:0">
+          Terminal
+        </div>
+        <div id="playgroundOutput" style="flex:1;overflow-y:auto;padding:12px 14px;background:var(--bg);font-family:var(--font-mono);font-size:11px;color:#4a9eff;white-space:pre-wrap;word-break:break-word;line-height:1.5">Resultado aparece aqui…</div>
+      </div>
+    </div>
+    <div class="actionbar">
+      <button class="btn primary" id="playgroundRun">Executar (Ctrl+Enter)</button>
+      <button class="btn" id="playgroundCopy">Copiar saída</button>
+      <div class="ab-sep"></div>
+      <button class="btn danger" id="playgroundClear">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── DIAGRAM EDITOR (AUTOMATOS) ── -->
+  <div id="diagramView" class="view hidden" style="flex-direction:row">
+    <div id="diagramToolbar" style="width:44px;background:#f5f5f5;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px;flex-shrink:0">
+      <button class="dtool active" id="dtool-select" title="Selecionar (V)" data-mode="select">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-4 7z"/></svg>
+      </button>
+      <div style="width:28px;height:1px;background:#e0e0e0;margin:3px 0"></div>
+      <button class="dtool" id="dtool-rect" title="Retângulo (R)" data-mode="rect">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+      </button>
+      <button class="dtool" id="dtool-circle" title="Elipse (E)" data-mode="circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="9" ry="7"/></svg>
+      </button>
+      <button class="dtool" id="dtool-diamond" title="Diamante (D)" data-mode="diamond">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 9-9 9-9-9z"/></svg>
+      </button>
+      <div style="width:28px;height:1px;background:#e0e0e0;margin:3px 0"></div>
+      <button class="dtool" id="dtool-arrow" title="Seta (A)" data-mode="arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg>
+      </button>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative">
+      <div id="diagramTopbar" style="height:36px;background:#fafafa;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;padding:0 8px;gap:6px;flex-shrink:0">
+        <span style="font-size:10px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Automatos</span>
+        <div style="flex:1"></div>
+        <div id="diagramColorPicker" style="display:none;align-items:center;gap:5px">
+          <span style="font-size:10px;color:#666;font-weight:600">Cor:</span>
+          <div id="diagramColorSwatches" style="display:flex;gap:3px">
+            <div class="color-swatch" data-color="#ffffff" style="background:#ffffff;border:1px solid #bbb"></div>
+            <div class="color-swatch" data-color="#dbeafe" style="background:#dbeafe"></div>
+            <div class="color-swatch" data-color="#dcfce7" style="background:#dcfce7"></div>
+            <div class="color-swatch" data-color="#fef9c3" style="background:#fef9c3"></div>
+            <div class="color-swatch" data-color="#fce7f3" style="background:#fce7f3"></div>
+            <div class="color-swatch" data-color="#ede9fe" style="background:#ede9fe"></div>
+            <div class="color-swatch" data-color="#fee2e2" style="background:#fee2e2"></div>
+            <div class="color-swatch" data-color="#f3f4f6" style="background:#f3f4f6"></div>
+          </div>
+          <input type="color" id="diagramColorCustom" title="Cor personalizada" style="width:22px;height:22px;border:1px solid #ccc;border-radius:3px;cursor:pointer;padding:1px"/>
+        </div>
+        <button class="dbtn" id="diagramDelete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Deletar
+        </button>
+        <button class="dbtn danger" id="diagramClear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+          Limpar
+        </button>
+      </div>
+      <div style="flex:1;overflow:hidden;position:relative;background:#ffffff" id="diagramCanvasWrap">
+        <canvas id="diagramCanvas" style="display:block;position:absolute;top:0;left:0"></canvas>
+        <input id="diagramLabelInput" style="display:none;position:absolute;border:2px solid #0EA5E9;border-radius:4px;padding:2px 6px;font-size:12px;font-family:system-ui,sans-serif;outline:none;background:white;z-index:10;text-align:center;min-width:80px"/>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .main -->
+</div><!-- .shell -->
+
+<div id="toast">✓ Copiado</div>
+
+
+<iframe id="jsSandbox" src="sandbox.html" style="display:none" sandbox="allow-scripts"></iframe>
+<script src="popup.js"></script>
+</body>
+</html>
