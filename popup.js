@@ -34,7 +34,7 @@ function debounce(fn, ms) {
 // ══════════════════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════════════════
-const VIEWS = ['json','diff','mock','base64','url','jwt','regex','timestamp','uuid','hash','color','jsonschema','cron','playground'];
+const VIEWS = ['json','diff','mock','base64','url','jwt','regex','timestamp','uuid','hash','color','jsonschema','cron','playground','diagram'];
 
 function switchView(view) {
   document.querySelectorAll('.nav-item').forEach(el =>
@@ -52,7 +52,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
 //  LOAD SAVED STATE
 // ══════════════════════════════════════════════════════
 chrome.storage.local.get(
-  ['json','diffA','diffB','mock','b64In','urlIn','jwtIn','regexPat','regexFlags','regexText','tsUnix','lastView','uuid','hashInput'],
+  ['json','diffA','diffB','mock','b64In','urlIn','jwtIn','regexPat','regexFlags','regexText','tsUnix','lastView','uuid','hashInput','playgroundCode','cronExpr','diagram'],
   r => {
     if (r.json)       $('jsonEditor').value  = r.json;
     if (r.diffA)      $('diffA').value        = r.diffA;
@@ -66,6 +66,8 @@ chrome.storage.local.get(
     if (r.tsUnix)     $('tsUnix').value       = r.tsUnix;
     if (r.uuid)       $('uuidOutput').value   = r.uuid;
     if (r.hashInput)  $('hashInput').value    = r.hashInput;
+    if (r.playgroundCode) $('playgroundCode').value = r.playgroundCode;
+    if (r.cronExpr)   $('cronExprInput').value = r.cronExpr;
 
     // Load mock from file, fallback to saved
     fetch('mock.html')
@@ -677,8 +679,139 @@ $('schemaClear').onclick = () => {
 };
 
 // ══════════════════════════════════════════════════════
-//  CRON QUARTZ GENERATOR
+//  CRON QUARTZ PARSER & CALCULATOR
 // ══════════════════════════════════════════════════════
+function expandCronField(field, min, max) {
+  if (field === '*' || field === '?') return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  
+  const values = new Set();
+  const parts = field.split(',');
+  
+  for (const part of parts) {
+    if (part.includes('/')) {
+      const [range, step] = part.split('/');
+      const [start, end] = range === '*' 
+        ? [min, max]
+        : range.includes('-')
+        ? range.split('-').map(Number)
+        : [Number(range), max];
+      
+      for (let i = start; i <= end; i += Number(step)) {
+        if (i >= min && i <= max) values.add(i);
+      }
+    } else if (part.includes('-')) {
+      const [start, end] = part.split('-').map(Number);
+      for (let i = start; i <= end; i++) {
+        if (i >= min && i <= max) values.add(i);
+      }
+    } else {
+      const num = Number(part);
+      if (num >= min && num <= max) values.add(num);
+    }
+  }
+  
+  return Array.from(values).sort((a, b) => a - b);
+}
+
+function getNextCronExecutions(cronExpr, count = 10) {
+  try {
+    const parts = cronExpr.trim().split(/\s+/);
+    if (parts.length < 6) return [];
+    
+    const [sec, min, hour, day, month, dow] = parts;
+    
+    const secValues = expandCronField(sec, 0, 59);
+    const minValues = expandCronField(min, 0, 59);
+    const hourValues = expandCronField(hour, 0, 23);
+    const dayValues = day === '?' ? null : expandCronField(day, 1, 31);
+    const monthValues = expandCronField(month, 1, 12);
+    const dowValues = dow === '?' ? null : expandCronField(dow, 0, 6);
+    
+    const executions = [];
+    let current = new Date();
+    current.setMilliseconds(0);
+    
+    // Move to next second
+    current.setSeconds(current.getSeconds() + 1);
+    
+    while (executions.length < count && current.getFullYear() < 2100) {
+      const y = current.getFullYear();
+      const m = current.getMonth() + 1;
+      const d = current.getDate();
+      const h = current.getHours();
+      const min_now = current.getMinutes();
+      const s = current.getSeconds();
+      
+      let valid = true;
+      
+      // Check month
+      if (!monthValues.includes(m)) {
+        current.setMonth(current.getMonth() + 1);
+        current.setDate(1);
+        current.setHours(0, 0, 0);
+        continue;
+      }
+      
+      // Check day and dow
+      const dayValid = dayValues === null || dayValues.includes(d);
+      const dowValid = dowValues === null || dowValues.includes(current.getDay());
+      
+      if (!dayValid && !dowValid) {
+        current.setDate(current.getDate() + 1);
+        current.setHours(0, 0, 0, 0);
+        continue;
+      }
+      
+      // Check hour
+      if (!hourValues.includes(h)) {
+        current.setHours(current.getHours() + 1);
+        current.setMinutes(0, 0, 0);
+        continue;
+      }
+      
+      // Check minute
+      if (!minValues.includes(min_now)) {
+        current.setMinutes(current.getMinutes() + 1);
+        current.setSeconds(0, 0);
+        continue;
+      }
+      
+      // Check second
+      if (!secValues.includes(s)) {
+        current.setSeconds(current.getSeconds() + 1);
+        continue;
+      }
+      
+      executions.push(new Date(current));
+      current.setSeconds(current.getSeconds() + 1);
+    }
+    
+    return executions;
+  } catch (e) {
+    return [];
+  }
+}
+
+function parseCronExpression(exprString) {
+  try {
+    const expr = exprString.trim();
+    const parts = expr.split(/\s+/);
+    
+    if (parts.length < 6) return null;
+    
+    return {
+      sec: parts[0],
+      min: parts[1],
+      hour: parts[2],
+      day: parts[3],
+      month: parts[4],
+      dow: parts[5]
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 function generateCronExpression() {
   const sec = $('cronSec').value.trim() || '0';
   const min = $('cronMin').value.trim() || '0';
@@ -687,46 +820,54 @@ function generateCronExpression() {
   const month = $('cronMonth').value.trim() || '*';
   const dow = $('cronDayOfWeek').value.trim() || '?';
   
-  const expr = `${sec} ${min} ${hour} ${day} ${month} ${dow} *`;
+  const expr = `${sec} ${min} ${hour} ${day} ${month} ${dow}`;
   $('cronExpression').textContent = expr;
   return expr;
 }
 
 function updateCronPreview(cronExpr) {
   try {
-    const parts = cronExpr.split(/\s+/).slice(0, 6);
-    if (parts.length < 6) return;
+    if (!cronExpr || !cronExpr.trim()) {
+      $('cronPreview').textContent = 'Expressão cron inválida';
+      return;
+    }
     
-    const [sec, min, hour, day, month, dow] = parts;
+    const parsed = parseCronExpression(cronExpr);
+    if (!parsed) {
+      $('cronPreview').textContent = 'Expressão cron inválida';
+      return;
+    }
+    
+    const executions = getNextCronExecutions(cronExpr, 10);
+    
     let preview = '';
     
-    if (sec === '0' && min === '0' && hour === '*' && day === '*' && month === '*') {
+    // Generate description
+    const { sec, min, hour, day, month, dow } = parsed;
+    if (sec === '0' && min === '0' && hour === '*' && day === '*' && month === '*' && dow === '?') {
       preview = 'Executa a cada minuto\n';
-    } else if (min === '0' && hour === '*' && day === '*' && month === '*' && dow === '?') {
+    } else if (sec === '0' && min === '*/15' && hour === '*' && day === '*' && month === '*' && dow === '?') {
+      preview = 'Executa a cada 15 minutos\n';
+    } else if (sec === '0' && min === '0' && hour === '*' && day === '*' && month === '*' && dow === '?') {
       preview = 'Executa a cada hora\n';
-    } else if (hour === '12' && min === '0' && day === '*' && month === '*') {
+    } else if (sec === '0' && min === '0' && hour === '12' && day === '*' && month === '*') {
       preview = 'Executa ao meio-dia\n';
-    } else if (hour === '0' && min === '0' && day === '*' && month === '*') {
+    } else if (sec === '0' && min === '0' && hour === '0' && day === '*' && month === '*') {
       preview = 'Executa à meia-noite\n';
-    } else if (dow === '1-5' && min === '0' && hour === '*') {
-      preview = 'Executa de segunda a sexta\n';
+    } else if (sec === '0' && min === '0' && hour === '9' && dow === '1-5') {
+      preview = 'Executa de segunda a sexta às 9h\n';
     } else {
-      preview = 'Expressão cron personalizada\n';
+      preview = 'Expressão personalizada\n';
     }
     
-    const now = new Date();
-    const nexts = [];
-    for (let i = 0; i < 5; i++) {
-      now.setMinutes(now.getMinutes() + 1);
-      const check = Math.random() < 0.3;
-      if (check) {
-        nexts.push(`• ${now.toLocaleString('pt-BR')}`);
-      }
-    }
+    const output = preview + (executions.length > 0 
+      ? 'Próximas 10 execuções:\n' + 
+        executions.map(d => `• ${d.toLocaleString('pt-BR')}`).join('\n')
+      : 'Nenhuma execução próxima encontrada');
     
-    $('cronPreview').textContent = preview + (nexts.length > 0 ? '\nPróximas execuções:\n' + nexts.join('\n') : '(Exemplos aproximados)');
+    $('cronPreview').textContent = output;
   } catch (e) {
-    $('cronPreview').textContent = 'Expressão inválida';
+    $('cronPreview').textContent = 'Erro ao processar expressão: ' + e.message;
   }
 }
 
@@ -783,8 +924,33 @@ $('cronCopy').onclick = () => copy($('cronExpression').textContent);
 $('cronClear').onclick = () => {
   $('cronSec').value = '0'; $('cronMin').value = '0'; $('cronHour').value = '*';
   $('cronDay').value = '*'; $('cronMonth').value = '*'; $('cronDayOfWeek').value = '?';
+  $('cronExprInput').value = '';
   generateCronExpression(); updateCronPreview('0 0 * * * ?');
 };
+
+// Bidirectional cron expression support
+$('cronExprInput').addEventListener('input', () => {
+  const expr = $('cronExprInput').value.trim();
+  if (!expr) return;
+  
+  const parsed = parseCronExpression(expr);
+  if (!parsed) {
+    toast('✗ Expressão CRON inválida');
+    return;
+  }
+  
+  $('cronSec').value = parsed.sec;
+  $('cronMin').value = parsed.min;
+  $('cronHour').value = parsed.hour;
+  $('cronDay').value = parsed.day;
+  $('cronMonth').value = parsed.month;
+  $('cronDayOfWeek').value = parsed.dow;
+  
+  generateCronExpression();
+  updateCronPreview(expr);
+  save('cronExpr', expr);
+  toast('✓ Expressão CRON parseada');
+});
 
 // Load saved cron expression
 chrome.storage.local.get(['cronExpr'], r => {
@@ -797,6 +963,7 @@ chrome.storage.local.get(['cronExpr'], r => {
       $('cronDay').value = parts[3];
       $('cronMonth').value = parts[4];
       $('cronDayOfWeek').value = parts[5];
+      $('cronExprInput').value = r.cronExpr;
       generateCronExpression();
       updateCronPreview(r.cronExpr);
     }
@@ -804,50 +971,88 @@ chrome.storage.local.get(['cronExpr'], r => {
 });
 
 // ══════════════════════════════════════════════════════
-//  JAVASCRIPT PLAYGROUND
+//  JAVASCRIPT PLAYGROUND (WITH WEB WORKER)
 // ══════════════════════════════════════════════════════
+let playgroundWorker = null;
+
+// Initialize Web Worker
+try {
+  playgroundWorker = new Worker('playground-worker.js');
+} catch (e) {
+  console.warn('Web Worker not available, fallback to eval');
+}
+
 function executePlaygroundCode() {
   const code = $('playgroundCode').value;
   const output = $('playgroundOutput');
-  const logs = [];
-  
-  const originalLog = console.log;
-  const originalError = console.error;
-  const originalWarn = console.warn;
-  
-  console.log = (...args) => {
-    logs.push(args.map(arg => {
-      if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
-      return String(arg);
-    }).join(' '));
-  };
-  
-  console.error = (...args) => {
-    logs.push('❌ ' + args.join(' '));
-  };
-  
-  console.warn = (...args) => {
-    logs.push('⚠️ ' + args.join(' '));
-  };
-  
-  try {
-    const result = eval(code);
-    if (result !== undefined) {
-      logs.push('↪️ ' + (typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)));
-    }
-    output.textContent = logs.join('\n') || '✓ Executado com sucesso';
-    output.style.color = '#4a9eff';
-  } catch (e) {
-    output.textContent = '✗ Erro:\n\n' + e.message;
-    output.style.color = '#f43f5e';
-    logs.push(e.stack);
-  } finally {
-    console.log = originalLog;
-    console.error = originalError;
-    console.warn = originalWarn;
-  }
   
   save('playgroundCode', code);
+
+  if (!code.trim()) {
+    output.textContent = '✓ Pronto para executar código';
+    output.style.color = '#22c55e';
+    return;
+  }
+
+  if (playgroundWorker) {
+    // Use Web Worker for safe execution
+    playgroundWorker.onmessage = function(event) {
+      const { success, message, error } = event.data;
+      
+      if (success) {
+        output.textContent = message.map(log => log.content).join('\n') || '✓ Executado com sucesso';
+        output.style.color = '#4a9eff';
+      } else {
+        const errorMsg = error.message || 'Erro desconhecido';
+        output.textContent = '✗ Erro:\n\n' + errorMsg;
+        output.style.color = '#f43f5e';
+      }
+    };
+    
+    playgroundWorker.onerror = function(event) {
+      output.textContent = '✗ Erro no Web Worker:\n\n' + event.message;
+      output.style.color = '#f43f5e';
+    };
+    
+    playgroundWorker.postMessage({ code });
+  } else {
+    // Fallback to direct execution (less safe, but works as before)
+    const logs = [];
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    console.log = (...args) => {
+      logs.push(args.map(arg => {
+        if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
+        return String(arg);
+      }).join(' '));
+    };
+    
+    console.error = (...args) => {
+      logs.push('❌ ' + args.join(' '));
+    };
+    
+    console.warn = (...args) => {
+      logs.push('⚠️ ' + args.join(' '));
+    };
+    
+    try {
+      const result = eval(code);
+      if (result !== undefined) {
+        logs.push('↪️ ' + (typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)));
+      }
+      output.textContent = logs.join('\n') || '✓ Executado com sucesso';
+      output.style.color = '#4a9eff';
+    } catch (e) {
+      output.textContent = '✗ Erro:\n\n' + e.message;
+      output.style.color = '#f43f5e';
+    } finally {
+      console.log = originalLog;
+      console.error = originalError;
+      console.warn = originalWarn;
+    }
+  }
 }
 
 $('playgroundRun').onclick = executePlaygroundCode;
@@ -874,6 +1079,227 @@ chrome.storage.local.get(['playgroundCode'], r => {
     $('playgroundCode').value = r.playgroundCode;
   }
 });
+
+// ══════════════════════════════════════════════════════
+//  DIAGRAM EDITOR (AUTOMATOS)
+// ══════════════════════════════════════════════════════
+class DiagramShape {
+  constructor(id, type, x, y, w, h, label = '') {
+    this.id = id;
+    this.type = type; // 'rect', 'circle', 'arrow'
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.label = label;
+  }
+}
+
+let diagramShapes = [];
+let diagramMode = 'select';
+let selectedShape = null;
+let dragStart = null;
+let nextShapeId = 1;
+
+const canvas = $('diagramCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  drawDiagram();
+}
+
+function drawDiagram() {
+  if (!ctx) return;
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg');
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw grid
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < canvas.width; i += 20) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, canvas.height);
+    ctx.stroke();
+  }
+  for (let i = 0; i < canvas.height; i += 20) {
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(canvas.width, i);
+    ctx.stroke();
+  }
+  
+  // Draw shapes
+  diagramShapes.forEach(shape => {
+    const isSelected = shape === selectedShape;
+    const fillColor = isSelected ? getComputedStyle(document.documentElement).getPropertyValue('--accent') : getComputedStyle(document.documentElement).getPropertyValue('--s2');
+    const strokeColor = isSelected ? getComputedStyle(document.documentElement).getPropertyValue('--accent') : getComputedStyle(document.documentElement).getPropertyValue('--border');
+    
+    ctx.fillStyle = fillColor;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.font = '12px var(--font-mono)';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    if (shape.type === 'rect') {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+      if (shape.label) {
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+        ctx.fillText(shape.label, shape.x + shape.w / 2, shape.y + shape.h / 2);
+      }
+    } else if (shape.type === 'circle') {
+      ctx.fillStyle = fillColor;
+      ctx.beginPath();
+      ctx.arc(shape.x, shape.y, shape.w, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      if (shape.label) {
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+        ctx.fillText(shape.label, shape.x, shape.y);
+      }
+    } else if (shape.type === 'arrow') {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(shape.x, shape.y);
+      ctx.lineTo(shape.x + shape.w, shape.y + shape.h);
+      ctx.stroke();
+      
+      // Arrow head
+      const angle = Math.atan2(shape.h, shape.w);
+      const headSize = 10;
+      ctx.beginPath();
+      ctx.moveTo(shape.x + shape.w, shape.y + shape.h);
+      ctx.lineTo(shape.x + shape.w - headSize * Math.cos(angle - Math.PI / 6), shape.y + shape.h - headSize * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(shape.x + shape.w - headSize * Math.cos(angle + Math.PI / 6), shape.y + shape.h - headSize * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+    }
+  });
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  if (diagramMode === 'select') {
+    selectedShape = diagramShapes.find(s => {
+      if (s.type === 'rect') return x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h;
+      if (s.type === 'circle') return Math.hypot(x - s.x, y - s.y) <= s.w;
+      return false;
+    });
+    drawDiagram();
+  } else {
+    dragStart = { x, y };
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!dragStart) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  if (selectedShape && diagramMode === 'select') {
+    selectedShape.x = x - selectedShape.w / 2;
+    selectedShape.y = y - selectedShape.h / 2;
+    drawDiagram();
+  }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (!dragStart) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const w = Math.abs(x - dragStart.x);
+  const h = Math.abs(y - dragStart.y);
+  
+  if (w > 5 && h > 5) {
+    if (diagramMode === 'rect') {
+      diagramShapes.push(new DiagramShape(nextShapeId++, 'rect', Math.min(dragStart.x, x), Math.min(dragStart.y, y), w, h, `Ret${nextShapeId}`));
+    } else if (diagramMode === 'circle') {
+      const radius = Math.max(w, h) / 2;
+      diagramShapes.push(new DiagramShape(nextShapeId++, 'circle', (dragStart.x + x) / 2, (dragStart.y + y) / 2, radius, 0, `Cir${nextShapeId}`));
+    } else if (diagramMode === 'arrow') {
+      diagramShapes.push(new DiagramShape(nextShapeId++, 'arrow', dragStart.x, dragStart.y, x - dragStart.x, y - dragStart.y, ''));
+    }
+    saveDiagram();
+    drawDiagram();
+  }
+  
+  dragStart = null;
+});
+
+function saveDiagram() {
+  chrome.storage.local.set({ 'diagram': JSON.stringify(diagramShapes) });
+}
+
+function loadDiagram() {
+  chrome.storage.local.get(['diagram'], r => {
+    if (r.diagram) {
+      try {
+        const data = JSON.parse(r.diagram);
+        diagramShapes = data.map(d => new DiagramShape(d.id, d.type, d.x, d.y, d.w, d.h, d.label));
+        nextShapeId = Math.max(...diagramShapes.map(s => s.id), 0) + 1;
+        drawDiagram();
+      } catch (e) {
+        console.error('Error loading diagram:', e);
+      }
+    }
+  });
+}
+
+$('diagramRect').onclick = () => { diagramMode = 'rect'; $('diagramRect').classList.add('primary'); ['diagramCircle','diagramArrow','diagramSelect'].forEach(id => $(id).classList.remove('primary')); };
+$('diagramCircle').onclick = () => { diagramMode = 'circle'; $('diagramCircle').classList.add('primary'); ['diagramRect','diagramArrow','diagramSelect'].forEach(id => $(id).classList.remove('primary')); };
+$('diagramArrow').onclick = () => { diagramMode = 'arrow'; $('diagramArrow').classList.add('primary'); ['diagramRect','diagramCircle','diagramSelect'].forEach(id => $(id).classList.remove('primary')); };
+$('diagramSelect').onclick = () => { diagramMode = 'select'; $('diagramSelect').classList.add('primary'); ['diagramRect','diagramCircle','diagramArrow'].forEach(id => $(id).classList.remove('primary')); };
+
+$('diagramDelete').onclick = () => {
+  if (selectedShape) {
+    diagramShapes = diagramShapes.filter(s => s !== selectedShape);
+    selectedShape = null;
+    saveDiagram();
+    drawDiagram();
+  }
+};
+
+$('diagramRename').onclick = () => {
+  if (selectedShape) {
+    const newLabel = prompt('Digite o novo nome:', selectedShape.label);
+    if (newLabel) {
+      selectedShape.label = newLabel;
+      saveDiagram();
+      drawDiagram();
+    }
+  }
+};
+
+$('diagramClear').onclick = () => {
+  if (confirm('Tem certeza que deseja limpar tudo?')) {
+    diagramShapes = [];
+    selectedShape = null;
+    nextShapeId = 1;
+    saveDiagram();
+    drawDiagram();
+  }
+};
+
+// Initialize diagram
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+loadDiagram();
+$('diagramSelect').classList.add('primary');
 
 // ══════════════════════════════════════════════════════
 //  JSON SYNTAX HIGHLIGHTING

@@ -10,6 +10,8 @@ O **DevTools CORP** é uma extensão para navegadores (Chrome, Edge, Brave) dese
 * **JSON Pretty:** Formatador e minificador de JSON com suporte a indentação e validação em tempo real.
 * **Diff Check:** Comparador de textos (A vs B) com renderização visual de adições e remoções em tempo real.
 * **Details Mock:** Template HTML customizável para geração de documentação ou especificações técnicas rápidas.
+* **JS Playground:** Executor de código JavaScript com isolamento via Web Worker, suportando console.log, console.error e console.warn com resultados em tempo real.
+* **Automatos (Diagram Editor):** Editor visual para criar diagramas simples com círculos, retângulos e setas. Suporta renomeação individual de elementos, drag-and-drop e persistência automática.
 
 ### 🛠️ Utilitários
 * **Base64:** Encode e Decode de strings de texto (com suporte a UTF-8 moderno).
@@ -17,6 +19,7 @@ O **DevTools CORP** é uma extensão para navegadores (Chrome, Edge, Brave) dese
 * **JWT Decoder:** Decodificador de tokens JWT com separação visual de Header e Payload, além de validação automática de status de expiração (`exp` e `iat`).
 * **Regex Tester:** Testador de expressões regulares com destaque visual (highlight) dos matches no texto.
 * **Timestamp:** Conversão bidirecional entre Unix Timestamp (segundos) e datas legíveis (Local, UTC, ISO), incluindo tempo relativo (ex: "há 2h").
+* **Cron-Quartz:** Gerador e parser bidirecional de expressões CRON com cálculo inteligente das próximas 10 execuções. Suporta ranges, steps e wildcards.
 
 ### 🔧 Geradores
 * **UUID Generator:** Gerador de UUIDs v1 (Time-based) e v4 (Random) com suporte a múltiplas gerações em lote.
@@ -64,6 +67,7 @@ Como se trata de uma ferramenta corporativa/customizada, a instalação é feita
 * `manifest.json`: Configurações e permissões da extensão.
 * `popup.html`: Estrutura principal da interface e views.
 * `popup.js`: Lógica de todas as ferramentas e gerenciamento de estado.
+* `playground-worker.js`: Web Worker para execução segura de código JavaScript.
 * `mock.html`: Template base para a ferramenta de Mock.
 
 ---
@@ -75,9 +79,19 @@ Como se trata de uma ferramenta corporativa/customizada, a instalação é feita
 - ✅ JWT Decoder: Melhorado com `TextEncoder` para suporte melhor a caracteres UTF-8.
 - ✅ Regex Tester: Removido problema de múltiplos event listeners sendo adicionados em cada execução.
 - ✅ Timestamp: Corrigido para aceitar corretamente timestamp 0 (1970-01-01).
+- ✅ JS Playground: Agora utiliza Web Worker para execução segura, reduzindo riscos de CSP violations.
 
 ### Novas Funcionalidades
 - ✨ UUID Generator: Geração v1 (Time) e v4 (Random) com lote até 100 UUIDs.
 - ✨ Hash Generator: SHA256 (Web Crypto API) e MD5 com atualização em tempo real.
 - ✨ Color Converter: Conversão e preview em tempo real entre Hex, RGB e HSL.
 - ✨ JSON Schema Validator: Validação básica contra schemas JSON (types, required, ranges, enums).
+- ✨ **Cron-Quartz Generator:** Parser bidirecional de expressões CRON-Quartz com cálculo automático de próximas 10 execuções. Suporta ranges (1-5), steps (/15) e wildcards (*/?).
+- ✨ **JS Playground (Sandbox):** Executor de código JavaScript isolado via Web Worker com suporte a console methods e captura de logs.
+- ✨ **Automatos (Diagram Editor):** Editor visual para criar diagramas com primitivas geométricas (círculos, retângulos, setas) com suporte a renomeação, drag-and-drop e persistência.
+
+### Reorganização
+- 🔄 JS Playground movido de "Novos" para "Core" (ferramentas essenciais).
+- 🔄 Cron-Quartz movido de "Novos" para "Utilitários" (ferramentas de geração).
+- 🔄 Automatos adicionado em "Core" para diagrama/automatos.
+- 🔄 Seção "Novos" removida após reorganização.
