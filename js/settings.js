@@ -84,7 +84,9 @@ const THEMES = {
 
 const POPUP_SIZES = {
   small:   { label: 'Pequeno (700×520)',  w: 700, h: 520 },
-  Max:  { label: 'Máx (800×600)',    w: 800, h: 600 },
+  medium:  { label: 'Médio (820×600)',    w: 820, h: 600 },
+  large:   { label: 'Grande (1000×680)',  w:1000, h: 680 },
+  xlarge:  { label: 'Extra grande (1200×760)', w:1200, h: 760 },
 };
 
 // All hideable views with labels
