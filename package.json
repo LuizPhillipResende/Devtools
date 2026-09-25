@@ -1,0 +1,36 @@
+{
+  "name": "devtools-corp-desktop",
+  "version": "6.0.0",
+  "description": "DevTools CORP - Suíte de Desenvolvimento Desktop",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "test": "electron test-suite.js",
+    "build": "electron-packager . \"DevTools CORP\" --platform=win32 --arch=x64 --icon=icons/icon.ico --out=dist --overwrite --asar"
+  },
+  "keywords": [
+    "devtools",
+    "desktop",
+    "electron",
+    "json",
+    "diff",
+    "qrcode",
+    "automatos",
+    "erd"
+  ],
+  "author": "CORP",
+  "license": "MIT",
+  "dependencies": {
+    "@zxing/library": "^0.21.3",
+    "codemirror": "^5.65.18",
+    "diff-match-patch": "^1.0.5",
+    "jsbarcode": "^3.11.6",
+    "qrcode": "^1.5.4",
+    "qrcode-generator": "^1.4.4"
+  },
+  "devDependencies": {
+    "electron": "^34.4.5",
+    "electron-packager": "^17.1.2"
+  }
+}

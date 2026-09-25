@@ -3,6 +3,7 @@
 
 const VIEWS_ALL = [
   'json','diff','mock','playground','diagram','productivity',
+  'qrcode',
   'base64','url','jwt','regex','timestamp','cron',
   'uuid','hash','color','jsonschema','settings'
 ];
@@ -17,11 +18,12 @@ function switchView(view) {
   });
   save('lastView', view);
   if (view === 'diagram') window.dispatchEvent(new CustomEvent('diagram-visible'));
+  if (view === 'diff' && window.renderDiff) window.renderDiff();
 }
 window.switchView = switchView;
 
 function loadSavedState() {
-  chrome.storage.local.get(null, r => {
+  window.appStorage.get(null, r => {
     if (r.json)           { const el=$('jsonEditor');      if(el) el.value=r.json; }
     if (r.diffA)          { const el=$('diffA');           if(el) el.value=r.diffA; }
     if (r.diffB)          { const el=$('diffB');           if(el) el.value=r.diffB; }
@@ -46,7 +48,7 @@ function loadSavedState() {
     if (r.diffA || r.diffB) { if (window.renderDiff) renderDiff(); }
     if (r.regexText)         { if (window.runRegex)   runRegex(); }
 
-    if (window.applySettings)   applySettings(r);
+    if (window.applySettings)    applySettings(r);
     if (window.loadProductivity) loadProductivity(r);
 
     // Handle clear all button
@@ -54,7 +56,7 @@ function loadSavedState() {
     if (clearBtn) {
       clearBtn.onclick = () => {
         if (confirm('Limpar TODOS os dados salvos? Esta ação é irreversível.')) {
-          chrome.storage.local.clear(() => { toast('✓ Dados limpos', 'ok'); });
+          window.appStorage.clear(() => { toast('✓ Dados limpos', 'ok'); });
         }
       };
     }
@@ -66,5 +68,50 @@ function loadSavedState() {
 document.querySelectorAll('.nav-item[data-view]').forEach(item => {
   item.onclick = () => switchView(item.dataset.view);
 });
+
+// Quick Search / Palette in Header
+const searchInput = $('globalToolSearch');
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase().trim();
+    document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+      const txt = item.textContent.toLowerCase();
+      item.style.display = txt.includes(q) ? 'flex' : 'none';
+    });
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const firstVisible = document.querySelector('.nav-item[data-view]:not([style*="display: none"])');
+      if (firstVisible) {
+        switchView(firstVisible.dataset.view);
+        searchInput.blur();
+      }
+    }
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      document.querySelectorAll('.nav-item[data-view]').forEach(item => item.style.display = 'flex');
+      searchInput.blur();
+    }
+  });
+}
+
+// Global shortcut Ctrl+K to focus search
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    if (searchInput) { searchInput.focus(); searchInput.select(); }
+  }
+});
+
+// Window controls (fallback)
+if (window.electronAPI) {
+  const minBtn = $('winMinBtn');
+  const maxBtn = $('winMaxBtn');
+  const closeBtn = $('winCloseBtn');
+  if (minBtn) minBtn.onclick = () => window.electronAPI.minimize();
+  if (maxBtn) maxBtn.onclick = () => window.electronAPI.maximize();
+  if (closeBtn) closeBtn.onclick = () => window.electronAPI.close();
+}
 
 document.addEventListener('DOMContentLoaded', loadSavedState);

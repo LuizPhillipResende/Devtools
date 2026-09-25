@@ -95,8 +95,9 @@ const HIDEABLE_VIEWS = [
   { id:'diff',        label:'Diff Check',       section:'Core' },
   { id:'mock',        label:'Details Mock',     section:'Core' },
   { id:'playground',  label:'JS Playground',    section:'Core' },
-  { id:'diagram',     label:'Automatos',        section:'Core' },
+  { id:'diagram',     label:'Automatos (ERD)',  section:'Core' },
   { id:'productivity',label:'Produtividade',    section:'Core' },
+  { id:'qrcode',      label:'QR & Barcode',     section:'Utilitários' },
   { id:'base64',      label:'Base64',           section:'Utilitários' },
   { id:'url',         label:'URL Tools',        section:'Utilitários' },
   { id:'jwt',         label:'JWT Decoder',      section:'Utilitários' },
@@ -124,6 +125,7 @@ function applySettings(r) {
   applySize(currentSettings.size);
   applyHiddenViews(currentSettings.hidden);
   renderSettingsUI();
+  setupBackupButtons();
 }
 window.applySettings = applySettings;
 
@@ -145,6 +147,13 @@ function applyTheme(themeKey, accentOverride) {
 }
 
 function applySize(sizeKey) {
+  if (window.electronAPI?.isDesktop) {
+    document.body.style.width  = '100%';
+    document.body.style.height = '100%';
+    document.documentElement.style.width  = '100%';
+    document.documentElement.style.height = '100%';
+    return;
+  }
   const size = POPUP_SIZES[sizeKey] || POPUP_SIZES.medium;
   document.body.style.width  = size.w + 'px';
   document.body.style.height = size.h + 'px';
@@ -161,6 +170,43 @@ function applyHiddenViews(hidden = []) {
 
 function saveSettings() {
   save('settings', JSON.stringify(currentSettings));
+}
+
+function setupBackupButtons() {
+  const btnExport = $('settingsExportBackup');
+  if (btnExport) {
+    btnExport.onclick = async () => {
+      window.appStorage.get(null, async data => {
+        await saveFileToComputer({
+          title: 'Exportar Backup do DevTools CORP',
+          defaultPath: 'devtools_backup.json',
+          filters: [{ name: 'JSON Backup', extensions: ['json'] }],
+          content: JSON.stringify(data, null, 2)
+        });
+      });
+    };
+  }
+
+  const btnImport = $('settingsImportBackup');
+  if (btnImport) {
+    btnImport.onclick = async () => {
+      const file = await chooseFileFromComputer({
+        title: 'Importar Backup do DevTools CORP',
+        filters: [{ name: 'JSON Backup', extensions: ['json'] }]
+      });
+      if (file?.content) {
+        try {
+          const parsed = JSON.parse(file.content);
+          window.appStorage.set(parsed, () => {
+            toast('✓ Backup restaurado com sucesso!', 'ok');
+            setTimeout(() => location.reload(), 800);
+          });
+        } catch (e) {
+          toast('Erro ao importar backup: ' + e.message, 'del');
+        }
+      }
+    };
+  }
 }
 
 // ── Render Settings UI ────────────────────────────────

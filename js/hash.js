@@ -1,35 +1,37 @@
 'use strict';
 // ══════════════════════════════════════════════════════
-//  HASH GENERATOR  (SHA-256, SHA-1 via SubtleCrypto; MD5 correct impl)
+//  HASH GENERATOR (SHA-256, SHA-1 via SubtleCrypto; MD5; PC File Hash)
 // ══════════════════════════════════════════════════════
 (function() {
-  async function sha(algo, str) {
-    const buf = await crypto.subtle.digest(algo, new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  async function sha(algo, strOrBuffer) {
+    const data = typeof strOrBuffer === 'string'
+      ? new TextEncoder().encode(strOrBuffer)
+      : strOrBuffer;
+    const buf = await crypto.subtle.digest(algo, data);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // Correct MD5 using safe variable naming
   function md5(str) {
-    function safeAdd(x, y) { const lsw=(x&0xffff)+(y&0xffff); return ((x>>16)+(y>>16)+(lsw>>16))<<16|lsw&0xffff; }
-    function bitRotLeft(num, cnt) { return num<<cnt|num>>>32-cnt; }
-    function md5cmn(q,a,b,x,s,t) { return safeAdd(bitRotLeft(safeAdd(safeAdd(a,q),safeAdd(x,t)),s),b); }
-    function md5ff(a,b,c,d,x,s,t) { return md5cmn(b&c|~b&d,a,b,x,s,t); }
-    function md5gg(a,b,c,d,x,s,t) { return md5cmn(b&d|c&~d,a,b,x,s,t); }
-    function md5hh(a,b,c,d,x,s,t) { return md5cmn(b^c^d,a,b,x,s,t); }
-    function md5ii(a,b,c,d,x,s,t) { return md5cmn(c^(b|~d),a,b,x,s,t); }
+    function safeAdd(x, y) { const lsw = (x & 0xffff) + (y & 0xffff); return ((x >> 16) + (y >> 16) + (lsw >> 16)) << 16 | lsw & 0xffff; }
+    function bitRotLeft(num, cnt) { return num << cnt | num >>> 32 - cnt; }
+    function md5cmn(q, a, b, x, s, t) { return safeAdd(bitRotLeft(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b); }
+    function md5ff(a, b, c, d, x, s, t) { return md5cmn(b & c | ~b & d, a, b, x, s, t); }
+    function md5gg(a, b, c, d, x, s, t) { return md5cmn(b & d | c & ~d, a, b, x, s, t); }
+    function md5hh(a, b, c, d, x, s, t) { return md5cmn(b ^ c ^ d, a, b, x, s, t); }
+    function md5ii(a, b, c, d, x, s, t) { return md5cmn(c ^ (b | ~d), a, b, x, s, t); }
 
-    function str2blks(str) {
-      const nblk=((str.length+8)>>6)+1, blks=new Array(nblk*16).fill(0);
-      for(let i=0;i<str.length;i++) blks[i>>2]|=str.charCodeAt(i)<<(i%4)*8;
-      blks[str.length>>2]|=0x80<<(str.length%4)*8;
-      blks[nblk*16-2]=str.length*8;
+    function str2blks(s) {
+      const nblk = ((s.length + 8) >> 6) + 1, blks = new Array(nblk * 16).fill(0);
+      for (let i = 0; i < s.length; i++) blks[i >> 2] |= s.charCodeAt(i) << (i % 4) * 8;
+      blks[s.length >> 2] |= 0x80 << (s.length % 4) * 8;
+      blks[nblk * 16 - 2] = s.length * 8;
       return blks;
     }
 
     const x = str2blks(str);
-    let a=1732584193, b=-271733879, c=-1732584194, d=271733878;
-    for(let i=0;i<x.length;i+=16){
-      const [oa,ob,oc,od]=[a,b,c,d];
+    let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+    for (let i = 0; i < x.length; i += 16) {
+      const [oa, ob, oc, od] = [a, b, c, d];
       a=md5ff(a,b,c,d,x[i],7,-680876936);d=md5ff(d,a,b,c,x[i+1],12,-389564586);c=md5ff(c,d,a,b,x[i+2],17,606105819);b=md5ff(b,c,d,a,x[i+3],22,-1044525330);
       a=md5ff(a,b,c,d,x[i+4],7,-176418897);d=md5ff(d,a,b,c,x[i+5],12,1200080426);c=md5ff(c,d,a,b,x[i+6],17,-1473231341);b=md5ff(b,c,d,a,x[i+7],22,-45705983);
       a=md5ff(a,b,c,d,x[i+8],7,1770035416);d=md5ff(d,a,b,c,x[i+9],12,-1958414417);c=md5ff(c,d,a,b,x[i+10],17,-42063);b=md5ff(b,c,d,a,x[i+11],22,-1990404162);
@@ -50,29 +52,50 @@
     }
 
     function toLe(n) { return [(n)&0xff,(n>>8)&0xff,(n>>16)&0xff,(n>>24)&0xff]; }
-    return [...toLe(a),...toLe(b),...toLe(c),...toLe(d)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    return [...toLe(a),...toLe(b),...toLe(c),...toLe(d)].map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
   async function recomputeHash(text) {
     if (!text) { $('hashSHA256').value=''; $('hashSHA1').value=''; $('hashMD5').value=''; return; }
-    $('hashMD5').value = md5(text);
+    $('hashMD5').value    = md5(text);
     $('hashSHA256').value = await sha('SHA-256', text);
     $('hashSHA1').value   = await sha('SHA-1',   text);
   }
 
-  // expose for load
   window.recomputeHash = recomputeHash;
 
-  $('hashInput').addEventListener('input', async () => {
-    const v = $('hashInput').value;
-    save('hashInput', v);
-    await recomputeHash(v);
-  });
+  const inp = $('hashInput');
+  if (inp) {
+    inp.addEventListener('input', async () => {
+      const v = inp.value;
+      save('hashInput', v);
+      await recomputeHash(v);
+    });
+  }
 
-  $('hashCopySHA').onclick  = () => copy($('hashSHA256').value);
-  $('hashCopySHA1').onclick = () => copy($('hashSHA1').value);
-  $('hashCopyMD5').onclick  = () => copy($('hashMD5').value);
-  $('hashClear').onclick = () => {
-    $('hashInput').value=''; recomputeHash(''); save('hashInput','');
+  $('hashCopySHA').onclick  = () => copy($('hashSHA256').value, '✓ SHA-256 copiado');
+  $('hashCopySHA1').onclick = () => copy($('hashSHA1').value, '✓ SHA-1 copiado');
+  $('hashCopyMD5').onclick  = () => copy($('hashMD5').value, '✓ MD5 copiado');
+  $('hashClear').onclick    = () => {
+    if (inp) inp.value = '';
+    recomputeHash('');
+    save('hashInput', '');
   };
+
+  // ── DESKTOP CAPABILITY: Calculate Hash of Any Computer File ──
+  const btnHashFile = $('hashOpenFile');
+  if (btnHashFile) {
+    btnHashFile.onclick = async () => {
+      const file = await chooseFileFromComputer({
+        title: 'Calcular Hash de Arquivo do Computador',
+        filters: [{ name: 'Todos os Arquivos', extensions: ['*'] }],
+        readAs: 'utf8'
+      });
+      if (file?.content !== undefined) {
+        if (inp) inp.value = `[Arquivo: ${file.fileName}]\n` + file.content;
+        await recomputeHash(file.content);
+        toast(`✓ Hashes calculados para: ${file.fileName}`, 'ok');
+      }
+    };
+  }
 })();
